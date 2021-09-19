@@ -1,45 +1,63 @@
-﻿namespace CoreDomain
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace CoreDomain
 {
     /// https://enterprisecraftsmanship.com/posts/value-object-better-implementation/
-    public abstract class ValueObject<T>
-        where T : ValueObject<T>
+    /// https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects
+    public abstract class ValueObject
     {
         public override bool Equals(object obj)
         {
-            var valueObject = obj as T;
-
-            if (valueObject == null)
+            if (obj == null)
                 return false;
 
             if (GetType() != obj.GetType())
                 return false;
 
-            return EqualsCore(valueObject);
+            var other = (ValueObject)obj;
+
+            return GetEqualityComponents().SequenceEqual(other.GetEqualityComponents());
         }
 
-        protected abstract bool EqualsCore(T other);
+        /// <summary>
+        /// Needs to implement using a yield return statement to return each element one at a time
+        /// </summary>
+        /// <example>
+        /// yield return Foo;
+        /// yield return Bar;
+        /// </example>
+        /// <returns></returns>
+        protected abstract IEnumerable<object> GetEqualityComponents();
 
         public override int GetHashCode()
         {
-            return GetHashCodeCore();
+            return GetEqualityComponents()
+                .Select(x => x != null ? x.GetHashCode() : 0)
+                .Aggregate((x, y) => x ^ y);
         }
 
-        protected abstract int GetHashCodeCore();
-
-        public static bool operator ==(ValueObject<T> a, ValueObject<T> b)
+        public static bool operator ==(ValueObject a, ValueObject b)
         {
-            if (a is null && b is null)
-                return true;
+            return EqualOperator(a, b);
+        }
 
-            if (a is null || b is null)
+        public static bool operator !=(ValueObject a, ValueObject b)
+        {
+            return NotEqualOperator(a, b);
+        }
+
+        protected static bool EqualOperator(ValueObject left, ValueObject right)
+        {
+            if (left is null ^ right is null)
                 return false;
-
-            return a.Equals(b);
+            
+            return left is null || left.Equals(right);
         }
 
-        public static bool operator !=(ValueObject<T> a, ValueObject<T> b)
+        protected static bool NotEqualOperator(ValueObject left, ValueObject right)
         {
-            return !(a == b);
+            return !EqualOperator(left, right);
         }
     }
 }
