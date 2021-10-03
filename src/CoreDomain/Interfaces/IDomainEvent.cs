@@ -7,6 +7,6 @@ namespace CoreDomain.Interfaces
         Guid EventId { get; }
         TKey AggregateId { get; }
         long AggregateVersion { get; }
-        public DateTime CreatedAt { get; }
+        DateTime CreatedAt { get; }
     }
 }
